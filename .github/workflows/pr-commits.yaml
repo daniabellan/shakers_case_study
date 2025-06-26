@@ -1,34 +1,33 @@
-name: Add Commits to PR Description
+name: Create PR for Feature Branches
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - 'feature/**'  
 
 jobs:
-  add-commits:
+  create_pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
 
-      - name: Get commits between base and head
-        id: get_commits
+      - name: Get commit messages
+        id: commits
         run: |
-          commits=$(git log --pretty=format:"- %s" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
-          echo "::set-output name=commits::$commits"
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          git log --oneline develop..HEAD >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Update PR description with commits
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
+          base: develop
+          title: "Feature PR: ${{ github.ref_name }}"
           body: |
-            # Pull Request Summary
+            This pull request includes the following commits:
 
-            This PR contains the following commits:
+            ${{ steps.commits.outputs.commits }}
+          branch: ${{ github.ref_name }}
 
-            ${{ steps.get_commits.outputs.commits }}
-
-            ---
-
-            Please add more details here as needed.
