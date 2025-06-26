@@ -20,7 +20,7 @@ jobs:
           echo "::set-output name=commits::$commits"
 
       - name: Update PR description with commits
-        uses: peter-evans/edit-pull-request@v3
+        uses: peter-evans/create-pull-request@v7
         with:
           body: |
             # Pull Request Summary
