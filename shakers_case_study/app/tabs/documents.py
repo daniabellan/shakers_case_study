@@ -1,10 +1,12 @@
-import streamlit as st
-import requests
-from dotenv import load_dotenv
 import os
+
+import requests
+import streamlit as st
+from dotenv import load_dotenv
 
 load_dotenv()
 BACKEND_URL = os.getenv("BACKEND_URL")
+
 
 def show():
     st.title("Documentación Técnica")
@@ -16,7 +18,7 @@ def show():
         if data["status"] != "success":
             st.error(f"Error del servidor: {data.get('message', 'Desconocido')}")
             return
-        files = sorted(data.get("payload", [])) 
+        files = sorted(data.get("payload", []))
     except Exception as e:
         st.error(f"Error al obtener lista de documentos: {e}")
         return

@@ -1,12 +1,16 @@
 # backend/routers/documents.py
-from fastapi import APIRouter
 import os
-from shakers_case_study.backend.utils.response_formatter import ResponseFormatter
+
+from fastapi import APIRouter
+
+from shakers_case_study.backend.utils.response_formatter import \
+    ResponseFormatter
 
 router = APIRouter()
 formatter = ResponseFormatter()
 
 DOCS_DIR = "uploaded_docs"
+
 
 @router.get("/documents")
 async def list_documents():
