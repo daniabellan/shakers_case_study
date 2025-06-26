@@ -1,0 +1,34 @@
+name: Add Commits to PR Description
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  add-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Get commits between base and head
+        id: get_commits
+        run: |
+          commits=$(git log --pretty=format:"- %s" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          echo "::set-output name=commits::$commits"
+
+      - name: Update PR description with commits
+        uses: peter-evans/edit-pull-request@v3
+        with:
+          body: |
+            # Pull Request Summary
+
+            This PR contains the following commits:
+
+            ${{ steps.get_commits.outputs.commits }}
+
+            ---
+
+            Please add more details here as needed.
