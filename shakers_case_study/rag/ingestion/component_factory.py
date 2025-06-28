@@ -1,20 +1,19 @@
 from langchain.embeddings.base import Embeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-from shakers_case_study.rag.ingestion.loaders.markdown_loader import MarkdownLoader
-from shakers_case_study.rag.ingestion.splitters.recursive_splitter import RecursiveTextSplitter
-from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import QdrantIndex
-
-from shakers_case_study.rag.config import (
-    Secrets,
-    LoaderConfig,
-    SplitterConfig,
-    EmbedderConfig,
-    VectorstoreConfig,
-)
+from shakers_case_study.rag.config import (EmbedderConfig, LoaderConfig,
+                                           Secrets, SplitterConfig,
+                                           VectorstoreConfig)
+from shakers_case_study.rag.ingestion.loaders.markdown_loader import \
+    MarkdownLoader
+from shakers_case_study.rag.ingestion.splitters.recursive_splitter import \
+    RecursiveTextSplitter
+from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import \
+    QdrantIndex
 
 # ----- FACTORY: Loader -----
+
 
 def get_loader(cfg: LoaderConfig):
     """
@@ -33,7 +32,9 @@ def get_loader(cfg: LoaderConfig):
         return MarkdownLoader(base_url=cfg.document_base_url)
     raise ValueError(f"Unsupported loader type: {cfg.type}")
 
+
 # ----- FACTORY: Splitter -----
+
 
 def get_splitter(cfg: SplitterConfig):
     """
@@ -55,7 +56,9 @@ def get_splitter(cfg: SplitterConfig):
         )
     raise ValueError(f"Unsupported splitter type: {cfg.type}")
 
+
 # ----- FACTORY: Embedder -----
+
 
 def get_embedder(cfg: EmbedderConfig, secrets: Secrets) -> Embeddings:
     """
@@ -76,6 +79,7 @@ def get_embedder(cfg: EmbedderConfig, secrets: Secrets) -> Embeddings:
     elif cfg.type == "huggingface":
         return _huggingface_embedder(cfg)
     raise ValueError(f"Unsupported embedding provider: {cfg.type}")
+
 
 def _google_embedder(cfg: EmbedderConfig, secrets: Secrets) -> Embeddings:
     """
@@ -98,6 +102,7 @@ def _google_embedder(cfg: EmbedderConfig, secrets: Secrets) -> Embeddings:
         google_api_key=secrets.gemini_api_key.get_secret_value(),
     )
 
+
 def _huggingface_embedder(cfg: EmbedderConfig) -> Embeddings:
     """
     Helper to create a HuggingFace embedder.
@@ -110,7 +115,9 @@ def _huggingface_embedder(cfg: EmbedderConfig) -> Embeddings:
     """
     return HuggingFaceEmbeddings(model_name=cfg.model_name)
 
+
 # ----- FACTORY: VectorStore -----
+
 
 def get_vectorstore(cfg: VectorstoreConfig, embedder: Embeddings):
     """

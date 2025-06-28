@@ -1,11 +1,12 @@
+import uuid
 from typing import List, Optional
-from langchain_qdrant import QdrantVectorStore
+
 from langchain.embeddings.base import Embeddings
 from langchain.schema import Document
-import uuid
-
+from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
-from qdrant_client.models import VectorParams, Distance, PointStruct, PointIdsList
+from qdrant_client.models import (Distance, PointIdsList, PointStruct,
+                                  VectorParams)
 
 
 class QdrantIndex:

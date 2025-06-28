@@ -1,12 +1,15 @@
-from pydantic import BaseModel, SecretStr, Field, field_validator
-from typing import Literal, Optional, Dict, Any
+from typing import Literal, Optional
+
 import yaml
+from pydantic import BaseModel, Field, SecretStr, field_validator
 
 # ---- Configuration for each pipeline subcomponent ----
+
 
 class LoaderConfig(BaseModel):
     type: Literal["markdown"]
     document_base_url: str = Field(default="http://localhost:8000")
+
 
 class SplitterConfig(BaseModel):
     type: Literal["recursive"]
@@ -24,9 +27,11 @@ class SplitterConfig(BaseModel):
             raise ValueError("chunk_overlap must be less than chunk_size")
         return v
 
+
 class EmbedderConfig(BaseModel):
     type: Literal["google"]
     model_name: str
+
 
 class VectorstoreConfig(BaseModel):
     type: Literal["qdrant"]
@@ -34,7 +39,9 @@ class VectorstoreConfig(BaseModel):
     host: str = "localhost"
     port: int = 6333
 
+
 # ---- General ingestion pipeline configuration ----
+
 
 class IngestPipelineConfig(BaseModel):
     loader: LoaderConfig
@@ -42,18 +49,24 @@ class IngestPipelineConfig(BaseModel):
     embedder: EmbedderConfig
     vectorstore: VectorstoreConfig
 
+
 # ---- Placeholder for future RAG stage ----
+
 
 class RagPipelineConfig(BaseModel):
     pass  # Can be extended later
 
+
 # ---- Overall pipeline configuration loading from YAML ----
+
 
 class PipelineConfig(BaseModel):
     ingest: IngestPipelineConfig
     rag: Optional[RagPipelineConfig] = None
 
+
 # ---- Secrets handling ----
+
 
 class Secrets(BaseModel):
     gemini_api_key: Optional[SecretStr] = None
@@ -75,7 +88,9 @@ class Secrets(BaseModel):
         s = EnvSettings()
         return cls(gemini_api_key=s.gemini_api_key)
 
+
 # ---- Function to load pipeline config from YAML ----
+
 
 def load_pipeline_config(path: str) -> PipelineConfig:
     """

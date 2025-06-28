@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from langchain.schema import Document
 from typing import List
+
+from langchain.schema import Document
+
 
 class BaseSplitter(ABC):
     """

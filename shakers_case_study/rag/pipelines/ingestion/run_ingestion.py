@@ -1,6 +1,9 @@
-from shakers_case_study.rag.pipelines.ingestion.ingestion_pipeline import IngestionPipeline
-from shakers_case_study.rag.config import load_pipeline_config, Secrets
-from shakers_case_study.rag.ingestion.component_factory import get_loader, get_splitter, get_embedder, get_vectorstore
+from shakers_case_study.rag.config import Secrets, load_pipeline_config
+from shakers_case_study.rag.ingestion.component_factory import (
+    get_embedder, get_loader, get_splitter, get_vectorstore)
+from shakers_case_study.rag.pipelines.ingestion.ingestion_pipeline import \
+    IngestionPipeline
+
 
 def build_ingestion_pipeline(config_path: str) -> IngestionPipeline:
     """

@@ -1,6 +1,9 @@
-from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
-from langchain.schema import Document
 from typing import List, Optional
+
+from langchain.schema import Document
+
+from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
+
 
 class MarkdownLoader(BaseLoader):
     """
@@ -15,7 +18,8 @@ class MarkdownLoader(BaseLoader):
         Loads and returns a list of markdown documents from the configured base URL.
 
         Args:
-            source_path (Optional[str]): Optional path to specify a subset of documents. (Not used currently.)
+            source_path (Optional[str]): Optional path to specify a subset of documents.
+            (Not used currently.)
 
         Returns:
             List[Document]: A list of Document objects containing the content and metadata.
@@ -27,11 +31,7 @@ class MarkdownLoader(BaseLoader):
             url = f"{self.base_url}/{self.document_prefix}/{filename}"
             resp = self.fetch_document_content(url)
             doc = Document(
-                page_content=resp.text,
-                metadata={
-                    "source_file": filename,
-                    "source": url
-                }
+                page_content=resp.text, metadata={"source_file": filename, "source": url}
             )
             documents.append(doc)
 

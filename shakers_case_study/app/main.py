@@ -1,8 +1,10 @@
 import streamlit as st
+
 from shakers_case_study.app.tabs import documents
 
 # Configure the Streamlit app page settings
 st.set_page_config(page_title="Shakers Case Study", layout="wide")
+
 
 def main():
     """
@@ -16,6 +18,7 @@ def main():
 
     if page == "Documents":
         documents.show()
+
 
 if __name__ == "__main__":
     main()

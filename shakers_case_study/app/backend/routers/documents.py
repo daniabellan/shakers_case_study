@@ -1,10 +1,10 @@
 import os
 
-from fastapi import APIRouter
-from fastapi import Query, HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from shakers_case_study.rag.ingestion.loaders.markdown_loader import MarkdownLoader
-from shakers_case_study.app.backend.utils.response_formatter import ResponseFormatter
+
+from shakers_case_study.app.backend.utils.response_formatter import \
+    ResponseFormatter
 
 router = APIRouter()
 formatter = ResponseFormatter()

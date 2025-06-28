@@ -1,9 +1,14 @@
-from typing import Optional, List
-from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
-from shakers_case_study.rag.ingestion.splitters.base_splitter import BaseSplitter
+from typing import List, Optional
+
 from langchain.embeddings.base import Embeddings
-from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import QdrantIndex
 from langchain.schema import Document
+
+from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
+from shakers_case_study.rag.ingestion.splitters.base_splitter import \
+    BaseSplitter
+from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import \
+    QdrantIndex
+
 
 class IngestionPipeline:
     """

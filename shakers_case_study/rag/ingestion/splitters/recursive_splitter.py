@@ -1,7 +1,11 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
 from typing import List
-from shakers_case_study.rag.ingestion.splitters.base_splitter import BaseSplitter
+
+from langchain.schema import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+from shakers_case_study.rag.ingestion.splitters.base_splitter import \
+    BaseSplitter
+
 
 class RecursiveTextSplitter(BaseSplitter):
     """
