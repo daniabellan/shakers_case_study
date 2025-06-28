@@ -1,0 +1,19 @@
+ingest:
+  loader:
+    type: markdown
+    document_base_url: "http://localhost:8000"
+
+  splitter:
+    type: recursive
+    chunk_size: 1000
+    chunk_overlap: 200
+
+  embedder:
+    type: google
+    model_name: "models/embedding-001"
+
+  vectorstore:
+    type: qdrant
+    collection_name: "learnivo_docs"
+    host: "localhost"
+    port: 6333
