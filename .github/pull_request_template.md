@@ -7,7 +7,7 @@ Please provide a brief summary of the changes introduced by this PR:
 ## Changes included in this PR:
 
 <!--
-If possible, please include the list of commits related to this PR. 
+If possible, please include the list of commits related to this PR.
 You can get it with: `git log --oneline origin/develop..HEAD`
 -->
 

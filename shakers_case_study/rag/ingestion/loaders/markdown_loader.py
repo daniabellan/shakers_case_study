@@ -3,6 +3,9 @@ from typing import List, Optional
 from langchain.schema import Document
 
 from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
+from shakers_case_study.utils.logging import get_logger
+
+logger = get_logger("run_ingestion")
 
 
 class MarkdownLoader(BaseLoader):
@@ -24,15 +27,24 @@ class MarkdownLoader(BaseLoader):
         Returns:
             List[Document]: A list of Document objects containing the content and metadata.
         """
-        filenames = self.fetch_filenames()
-        documents = []
+        if source_path:
+            # TODO: Implement logic to load from disk
+            logger.info(f"Loading documents from {source_path}...")
 
-        for filename in sorted(filenames):
-            url = f"{self.base_url}/{self.document_prefix}/{filename}"
-            resp = self.fetch_document_content(url)
-            doc = Document(
-                page_content=resp.text, metadata={"source_file": filename, "source": url}
-            )
-            documents.append(doc)
+        else:
+            # Load documents from URL
+            logger.info(f"Loading documents from {self.base_url}...")
+            filenames = self.fetch_filenames()
+            documents = []
+
+            for filename in sorted(filenames):
+                url = f"{self.base_url}/{self.document_prefix}/{filename}"
+                resp = self.fetch_document_content(url)
+                doc = Document(
+                    page_content=resp.text, metadata={"source_file": filename, "source": url}
+                )
+                documents.append(doc)
+
+        logger.info(f"Loaded {len(documents)} documents")
 
         return documents

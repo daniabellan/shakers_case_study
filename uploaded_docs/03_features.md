@@ -117,4 +117,3 @@ Learnivo is built to seamlessly connect with external tools and platforms.
 Learnivo combines advanced AI personalization, rich multimedia course capabilities, robust user management, and insightful analytics to deliver a comprehensive e-learning experience. Its features are designed to foster learner engagement, simplify instructor workflows, and provide organizations with the tools needed to manage scalable, effective training programs.
 
 ---
-
