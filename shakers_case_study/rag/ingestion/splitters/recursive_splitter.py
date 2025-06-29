@@ -3,8 +3,10 @@ from typing import List
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from shakers_case_study.rag.ingestion.splitters.base_splitter import \
-    BaseSplitter
+from shakers_case_study.rag.ingestion.splitters.base_splitter import BaseSplitter
+from shakers_case_study.utils.logging import get_logger
+
+logger = get_logger("run_ingestion")
 
 
 class RecursiveTextSplitter(BaseSplitter):
@@ -39,4 +41,10 @@ class RecursiveTextSplitter(BaseSplitter):
         Returns:
             List[Document]: The resulting list of chunked documents.
         """
-        return self.splitter.split_documents(documents)
+        logger.info(f"Splitting documents using {type(self.splitter).__name__} strategy")
+
+        splitted_docs = self.splitter.split_documents(documents)
+
+        logger.info(f"Splitted documents in {len(splitted_docs)} chunks")
+
+        return splitted_docs

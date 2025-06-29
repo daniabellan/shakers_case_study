@@ -5,8 +5,11 @@ from langchain.embeddings.base import Embeddings
 from langchain.schema import Document
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
-from qdrant_client.models import (Distance, PointIdsList, PointStruct,
-                                  VectorParams)
+from qdrant_client.models import Distance, PointIdsList, PointStruct, VectorParams
+
+from shakers_case_study.utils.logging import get_logger
+
+logger = get_logger("run_ingestion")
 
 
 class QdrantIndex:
@@ -72,6 +75,10 @@ class QdrantIndex:
         client = self._get_client()
         existing_collections = [col.name for col in client.get_collections().collections]
         if self.collection_name not in existing_collections:
+            logger.info(
+                f"Collection {self.collection_name} does not exists in vectorstore. Creating..."
+            )
+
             client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
@@ -86,12 +93,15 @@ class QdrantIndex:
         Args:
             documents (List[Document]): List of documents to add.
         """
+        logger.info(f"Creating embeddings for {len(documents)} chunks")
+
         client = self._get_client()
         embeddings = self.embedder.embed_documents([doc.page_content for doc in documents])
         ids = [self._get_document_id(doc) for doc in documents]
 
         self._ensure_collection_exists(len(embeddings[0]))
 
+        logger.info(f"Adding embeddings to {self.collection_name} collection")
         try:
             client.delete(
                 collection_name=self.collection_name,
@@ -114,6 +124,7 @@ class QdrantIndex:
 
         client.upsert(collection_name=self.collection_name, points=points)
 
+        logger.info(f"Added {len(points)} points to {self.collection_name} collection")
         if self.vectorstore is None:
             self.vectorstore = QdrantVectorStore(
                 embedding=self.embedder,

@@ -4,10 +4,11 @@ from langchain.embeddings.base import Embeddings
 from langchain.schema import Document
 
 from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
-from shakers_case_study.rag.ingestion.splitters.base_splitter import \
-    BaseSplitter
-from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import \
-    QdrantIndex
+from shakers_case_study.rag.ingestion.splitters.base_splitter import BaseSplitter
+from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import QdrantIndex
+from shakers_case_study.utils.logging import get_logger
+
+logger = get_logger("run_ingestion")
 
 
 class IngestionPipeline:
@@ -44,6 +45,8 @@ class IngestionPipeline:
         Args:
             source_path (Optional[str]): Optional path or URL to load documents from.
         """
+        logger.info("Running pipeline...")
+
         # 1. Load documents
         documents: List[Document] = self.loader.load_documents(source_path)
 
