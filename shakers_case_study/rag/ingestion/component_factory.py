@@ -1,16 +1,18 @@
 from langchain.embeddings.base import Embeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
-from shakers_case_study.rag.config import (EmbedderConfig, LoaderConfig,
-                                           Secrets, SplitterConfig,
-                                           VectorstoreConfig)
-from shakers_case_study.rag.ingestion.loaders.markdown_loader import \
-    MarkdownLoader
-from shakers_case_study.rag.ingestion.splitters.recursive_splitter import \
-    RecursiveTextSplitter
-from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import \
-    QdrantIndex
+from shakers_case_study.rag.config import (
+    EmbedderConfig,
+    LLMConfig,
+    LoaderConfig,
+    Secrets,
+    SplitterConfig,
+    VectorstoreConfig,
+)
+from shakers_case_study.rag.ingestion.loaders.markdown_loader import MarkdownLoader
+from shakers_case_study.rag.ingestion.splitters.recursive_splitter import RecursiveTextSplitter
+from shakers_case_study.rag.vectorstore.qdrant_index import QdrantIndex
 
 # ----- FACTORY: Loader -----
 
@@ -141,3 +143,9 @@ def get_vectorstore(cfg: VectorstoreConfig, embedder: Embeddings):
             port=cfg.port,
         )
     raise ValueError(f"Unsupported vectorstore type: {cfg.type}")
+
+
+# ----- FACTORY: LLM -----
+def get_llm(cfg: LLMConfig, secrets: Secrets):
+    if cfg.type == "google":
+        return ChatGoogleGenerativeAI(model=cfg.model_name, google_api_key=secrets.gemini_api_key)

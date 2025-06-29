@@ -40,6 +40,11 @@ class VectorstoreConfig(BaseModel):
     port: int = 6333
 
 
+class LLMConfig(BaseModel):
+    type: Literal["google"]
+    model_name: Literal["gemini-2.0-flash"]  # Avoid using other models (API costs)
+
+
 # ---- General ingestion pipeline configuration ----
 
 
@@ -54,7 +59,9 @@ class IngestPipelineConfig(BaseModel):
 
 
 class RagPipelineConfig(BaseModel):
-    pass  # Can be extended later
+    vectorstore: VectorstoreConfig
+    embedder: EmbedderConfig
+    llm: LLMConfig
 
 
 # ---- Overall pipeline configuration loading from YAML ----

@@ -17,3 +17,18 @@ ingest:
     collection_name: "learnivo_docs"
     host: "localhost"
     port: 6333
+
+rag:
+  vectorstore:
+    type: qdrant
+    collection_name: "learnivo_docs"
+    host: "localhost"
+    port: 6333
+
+  embedder:
+    type: google
+    model_name: "models/embedding-001"
+
+  llm:
+    type: google
+    model_name: "gemini-2.0-flash"

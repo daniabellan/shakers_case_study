@@ -26,6 +26,7 @@ class QdrantIndex:
         collection_name: str,
         host: str,
         port: int,
+        threshold: float = 0.7,
     ):
         """
         Initialize QdrantIndex with an embedder, collection details, and connection info.
@@ -35,11 +36,13 @@ class QdrantIndex:
             collection_name (str): Name of the Qdrant collection.
             host (str): Qdrant host address.
             port (int): Qdrant port number.
+            threshdold (float): Minimum threshold to retrieve documents.
         """
         self.embedder = embedder
         self.collection_name = collection_name
         self.host = host
         self.port = port
+        self.threshold = threshold
         self.vectorstore: Optional[QdrantVectorStore] = None
 
     def _get_client(self) -> QdrantClient:
@@ -134,7 +137,11 @@ class QdrantIndex:
                 metadata_payload_key="metadata",
             )
 
-    def similarity_search(self, query: str, k: int = 5) -> List[Document]:
+    def similarity_search(
+        self,
+        query: str,
+        k: int = 5,
+    ) -> List[Document]:
         """
         Perform a similarity search in the collection using a query string.
 
@@ -147,7 +154,20 @@ class QdrantIndex:
         """
         if self.vectorstore is None:
             raise RuntimeError("Qdrant index not initialized.")
-        return self.vectorstore.similarity_search(query, k)
+
+        # Get documents + similarity scores
+        results_with_scores = self.vectorstore.similarity_search_with_score(query, k=k)
+
+        # Apply threshold filter
+        filtered_results = [doc for doc, score in results_with_scores if score >= self.threshold]
+
+        if not filtered_results:
+            # Fallback: return a synthetic document or log "out of scope"
+            logger.warning(
+                f"No relevant documents found above threshold={self.threshold} for query: {query}"
+            )
+
+        return filtered_results
 
     def load(self) -> None:
         """
@@ -155,7 +175,9 @@ class QdrantIndex:
         """
         client = self._get_client()
         self.vectorstore = QdrantVectorStore(
-            embedding_function=self.embedder.embed_query,
+            embedding=self.embedder,
             collection_name=self.collection_name,
             client=client,
         )
+
+        return self

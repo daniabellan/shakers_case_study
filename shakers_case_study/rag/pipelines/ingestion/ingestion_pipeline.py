@@ -5,7 +5,7 @@ from langchain.schema import Document
 
 from shakers_case_study.rag.ingestion.loaders.base_loader import BaseLoader
 from shakers_case_study.rag.ingestion.splitters.base_splitter import BaseSplitter
-from shakers_case_study.rag.ingestion.vectorstore.qdrant_index import QdrantIndex
+from shakers_case_study.rag.vectorstore.qdrant_index import QdrantIndex
 from shakers_case_study.utils.logging import get_logger
 
 logger = get_logger("run_ingestion")
