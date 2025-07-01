@@ -22,7 +22,8 @@ def build_rag_pipeline(config_path: str) -> RAGPipeline:
     vectorstore = get_vectorstore(config.rag.vectorstore, embedder).load()
     llm = get_llm(config.rag.llm, secrets)
 
-    pipeline = RAGPipeline(vectorstore, llm)
+    db_uri = "postgresql://shakers_case_study:shakers_case_study@localhost:5432/shakers_case_study?sslmode=disable"  # noqa: E501
+    pipeline = RAGPipeline(vectorstore, llm, db_uri, embedder)
 
     logger.info("Loaded RAG pipeline")
 
@@ -32,4 +33,5 @@ def build_rag_pipeline(config_path: str) -> RAGPipeline:
 if __name__ == "__main__":
     config_path = "pipeline_configs/standard_pipeline.yaml"
     pipeline = build_rag_pipeline(config_path)
+
     pipeline.run()

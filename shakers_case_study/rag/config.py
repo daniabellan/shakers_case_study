@@ -68,7 +68,7 @@ class RagPipelineConfig(BaseModel):
 
 
 class PipelineConfig(BaseModel):
-    ingest: IngestPipelineConfig
+    ingest: IngestPipelineConfig = None
     rag: Optional[RagPipelineConfig] = None
 
 
