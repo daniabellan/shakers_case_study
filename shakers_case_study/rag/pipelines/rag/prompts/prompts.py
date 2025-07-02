@@ -56,9 +56,6 @@ Use the conversation context and the recommended additional resources to provide
 Company Information:
 {company_info}
 
-Conversation context:
-{{previous_context}}
-
 User question:
 {{user_question}}
 
@@ -68,14 +65,11 @@ Answer concisely in plain text. Add also the source of the answer. Example: Sour
 RESOURCE_RECOMMENDATION_PROMPT = """
 You are an assistant providing personalized resource recommendations.
 
-Use the defined tone to adapt your answer.
-Tone: {sentiment_tone}
-
-The user asked: "{user_query}".
-User profile summary: {user_profile_summary}
-Recommended resources: {combined_resource_str}
+The user asked: "{user_question}".
+Recommended resource: {resource_content}
 Briefly explain why this resource is relevant to the user and their question.
 Begin the explanation as a natural continuation of your answer to the user's question.
+Remember: answer with just a sentence. Do not bring too much information about the original documents.
 """
 
 NO_RESOURCES_FOUND_PROMPT = """\

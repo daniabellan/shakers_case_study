@@ -2,7 +2,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import psycopg
@@ -70,7 +70,7 @@ class RAGPipeline:
             store.setup()
             checkpointer.setup()
 
-    def log_final_metrics(self, state: MyStateSchema, config: RunnableConfig, *, store):
+    def log_final_metrics(self, state: MyStateSchema):
         return state
 
     def log_llm_metrics(
@@ -142,6 +142,7 @@ class RAGPipeline:
                 "node_name": current_node,
                 "is_flagged": False,
                 "metadata": {},
+                "sentiment": state.sentiment,
             }
             store.put((user_id, thread_id), message_data["id"], message_data)
 
@@ -184,39 +185,45 @@ class RAGPipeline:
         print(f"get_user_history time: {time.time()-start:.2f} secs")
         return user_history
 
+    def get_recent_user_messages(self, user_history, max_messages=10):
+        return [
+            m.get("content") for m in user_history if m.get("role") == "user" and m.get("content")
+        ][-max_messages:]
+
     def build_user_profile(self, state: MyStateSchema, max_messages=10):
         start_time = time.time()
-        user_messages = [
-            m.get("content")
-            for m in self.user_history
-            if m.get("role") == "user" and m.get("content")
-        ]
-        recent_messages = user_messages[-max_messages:]
+
+        recent_messages = self.get_recent_user_messages(self.user_history, max_messages)
 
         if not recent_messages:
-            dummy_embedding = self.embedder.embed_query("")
-            return np.zeros_like(dummy_embedding)
+            empty_embedding = self.cached_embed_query("")
+            return {"state": state, "profile_vector": np.zeros_like(empty_embedding)}
 
-        weights = np.arange(len(recent_messages), 0, -1)
+        # Decay weights, mensajes más recientes pesan más
+        recency_weights = np.arange(len(recent_messages), 0, -1)
 
         try:
             embeddings = self.embedder.embed_documents(recent_messages)
             embeddings = np.array(embeddings)
         except Exception as e:
-            print(f"Error batch embedding: {e}")
-            return np.zeros_like(self.cached_embed_query(""))
+            logger.error(f"Error during batch embedding: {e}")
+            empty_embedding = self.cached_embed_query("")
+            return {"state": state, "profile_vector": np.zeros_like(empty_embedding)}
 
         if embeddings.shape[0] == 0:
-            return np.zeros_like(self.cached_embed_query(""))
+            empty_embedding = self.cached_embed_query("")
+            return {"state": state, "profile_vector": np.zeros_like(empty_embedding)}
 
-        weighted_embeddings = embeddings * weights[:, np.newaxis]
-        profile_vector = weighted_embeddings.sum(axis=0) / weights.sum()
+        # Embedding ponderado por recencia
+        weighted_embeddings = embeddings * recency_weights[:, np.newaxis]
+        profile_vector = weighted_embeddings.sum(axis=0) / recency_weights.sum()
 
-        state = self.log_llm_metrics(state, "sentiment_detection", start_time)
+        # Loggear métrica genérica (usar nombre de operación adecuado)
+        state = self.log_llm_metrics(state, "build_user_profile", start_time)
 
         return {"state": state, "profile_vector": profile_vector}
 
-    def intent_detector(self, state: MyStateSchema, config: RunnableConfig, *, store):
+    def intent_detector(self, state: MyStateSchema):
         start_time = time.time()
         user_question = state.messages[-1]["content"]
 
@@ -238,7 +245,7 @@ class RAGPipeline:
         print(f"intent_detector time: {time.time()-start_time:.2f} secs")
         return state
 
-    def malicious_query_detector(self, state: MyStateSchema, config: RunnableConfig, *, store):
+    def malicious_query_detector(self, state: MyStateSchema):
         start_time = time.time()
         user_question = state.messages[-1]["content"]
 
@@ -260,7 +267,7 @@ class RAGPipeline:
         print(f"malicious_query_detector time: {time.time()-start_time:.2f} secs")
         return state
 
-    def unsafe_fallback(self, state: MyStateSchema, config: RunnableConfig, *, store):
+    def unsafe_fallback(self, state: MyStateSchema):
         start_time = time.time()
         user_question = state.messages[-1]["content"]
 
@@ -282,7 +289,7 @@ class RAGPipeline:
 
         return state
 
-    def out_of_scope_answer(self, state: MyStateSchema, config: RunnableConfig, *, store):
+    def out_of_scope_answer(self, state: MyStateSchema):
         start_time = time.time()
         user_question = state.messages[-1]["content"]
 
@@ -304,7 +311,7 @@ class RAGPipeline:
 
         return state
 
-    def ambiguous_question_answer(self, state: MyStateSchema, config: RunnableConfig, *, store):
+    def ambiguous_question_answer(self, state: MyStateSchema):
         start_time = time.time()
         user_question = state.messages[-1]["content"]
 
@@ -362,53 +369,50 @@ class RAGPipeline:
 
         return {"state": state, "recommendation_explanation": response.content}
 
-    def build_user_profile_summary(self, user_id, thread_id, max_messages=10) -> str:
-        """
-        Opcional: Genera un resumen en texto natural del perfil del usuario
-        basado en sus mensajes para dar contexto al LLM.
-        """
-        user_messages = [
-            m.get("content")
-            for m in self.user_history
-            if m.get("role") == "user" and m.get("content")
-        ]
-
-        recent_messages = user_messages[-max_messages:]
-        if not recent_messages:
-            return "No previous user information"
-
-        # Podrías concatenar y/o hacer un resumen simple
-        summary = "Recent user questions: " + ", ".join(set(recent_messages))
-        return summary
-
     @lru_cache(maxsize=1000)
     def cached_embed_query(self, text):
         return self.embedder.embed_query(text)
 
-    def recommend_resources(
+    def cosine_similarity(self, a: np.ndarray, b: np.ndarray, a_norm=None, b_norm=None) -> float:
+        if a_norm is None:
+            a_norm = np.linalg.norm(a)
+        if b_norm is None:
+            b_norm = np.linalg.norm(b)
+        if a_norm == 0 or b_norm == 0:
+            return 0.0
+        return np.dot(a, b) / (a_norm * b_norm)
+
+    def recommend_resources_personalized(
         self,
         state: MyStateSchema,
         user_question: str,
+        user_id: str,
+        thread_id: str,
         alpha: float = 0.7,
-        top_k: int = 10,
+        top_k: int = 20,
         n_recommendations: int = 3,
         diversity_threshold: float = 0.85,
-    ) -> List[Tuple[float, dict]]:
-        """
-        Devuelve lista de (score, recurso_dict) donde recurso_dict tiene keys 'id' y 'text' mínimo.
-        """
+    ):
         start_time = time.time()
 
-        profile_vector_payload = self.build_user_profile(state)
-        state = profile_vector_payload["state"]
-        profile_vector = profile_vector_payload["profile_vector"]
+        # Construir perfil de usuario basado en histórico reciente
+        profile_payload = self.build_user_profile(state)
+        state = profile_payload["state"]
+        profile_vector = profile_payload["profile_vector"]
 
-        question_embedding = np.array(self.cached_embed_query(user_question))
+        # Embedding de la pregunta actual
+        question_emb = np.array(self.cached_embed_query(user_question))
 
-        combined_vector = alpha * question_embedding + (1 - alpha) * profile_vector
+        # Combinar embedding pregunta con perfil (ponderado)
+        combined_vector = alpha * question_emb + (1 - alpha) * profile_vector
         norm = np.linalg.norm(combined_vector)
-        combined_vector = combined_vector / norm if norm != 0 else combined_vector
+        if norm > 0:
+            combined_vector /= norm
 
+        # Obtener historial del usuario y fuentes ya consultadas para evitar repetir
+        seen_sources = {m.get("source_file") for m in self.user_history if m.get("source_file")}
+
+        # Consulta vectorial en el vectorstore
         client = self.vectorstore._get_client()
         search_results = client.search(
             collection_name=self.vectorstore.collection_name,
@@ -418,44 +422,86 @@ class RAGPipeline:
             with_vectors=True,
         )
 
-        def cosine_sim(a, b):
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
         recommendations = []
-        embeddings_selected = []
+        selected_embeddings = []
+        combined_norm = np.linalg.norm(combined_vector)
 
-        start_diversity = time.time()
         for hit in search_results:
-            doc_vec = np.array(hit.vector)
-            if any(cosine_sim(doc_vec, v) > diversity_threshold for v in embeddings_selected):
-                continue
-
-            score = cosine_sim(combined_vector, doc_vec)
-
             payload = hit.payload or {}
             metadata = payload.get("metadata", {})
-            resource_dict = {
-                "source_file": metadata.get("source_file", "desconocido"),
-                "page_content": payload.get("page_content", ""),
-            }
+            source_file = metadata.get("source_file", "unknown")
 
-            recommendations.append((score, resource_dict))
-            embeddings_selected.append(doc_vec)
+            # Saltar documentos ya consultados
+            if source_file in seen_sources:
+                continue
+
+            doc_vec = np.array(hit.vector)
+            doc_norm = np.linalg.norm(doc_vec)
+            if doc_norm == 0:
+                continue
+
+            # Verificar diversidad: evitar recursos muy similares a los ya seleccionados
+            if any(
+                self.cosine_similarity(doc_vec, emb, doc_norm, np.linalg.norm(emb))
+                > diversity_threshold
+                for emb in selected_embeddings
+            ):
+                continue
+
+            score = self.cosine_similarity(combined_vector, doc_vec, combined_norm, doc_norm)
+
+            recommendations.append(
+                {
+                    "source_file": source_file,
+                    "page_content": payload.get("page_content", ""),
+                    "score": score,
+                }
+            )
+            selected_embeddings.append(doc_vec)
 
             if len(recommendations) >= n_recommendations:
                 break
 
-            print(f"start_diversity time: {time.time()-start_diversity:.2f} secs")
+        # Generar explicaciones para cada recomendación usando el segundo LLM
+        explanations = []
 
-        state = self.log_llm_metrics(state, "out_of_scope_answer", start_time)
-        return {"state": state, "recommendations": recommendations}
+        for rec in recommendations:
+            prompt_template = PromptTemplate(
+                input_variables=[
+                    "resource_content",
+                    "user_question",
+                ],
+                template=RESOURCE_RECOMMENDATION_PROMPT,
+            )
+
+            # Preparar la explicación
+            formatted_prompt = prompt_template.format(
+                resource_content=rec["page_content"],
+                user_question=user_question,
+            )
+
+            messages = [HumanMessage(content=formatted_prompt)]
+            response = self.llm.invoke(messages)
+
+            explanations.append(
+                {
+                    "source_file": rec["source_file"],
+                    "score": rec["score"],
+                    "explanation": response.content.strip(),
+                }
+            )
+
+        state = self.log_llm_metrics(state, "recommend_resources_personalized", start_time)
+        return {
+            "state": state,
+            "recommendations": explanations,
+        }
 
     # Nodo que procesa input usuario y genera respuesta con LLM
     def llm_reply(
         self,
         state: MyStateSchema,
         config: RunnableConfig,
-        max_hist_messages: int = 10,
     ):
         start_time = time.time()
         user_question = state.messages[-1]["content"]
@@ -464,10 +510,22 @@ class RAGPipeline:
 
         sentiment_tone = self.sentiment_tones.get(state.sentiment, self.sentiment_tones["neutral"])
 
+        # Get user historic chat
+        self.user_history = self.get_user_history(user_id, thread_id)
+
+        # RECOMMENDATION SYSTEM
+        recommendations_payload = self.recommend_resources_personalized(
+            state,
+            user_question,
+            user_id,
+            thread_id,
+        )
+        state = recommendations_payload["state"]
+        recommendations = recommendations_payload["recommendations"]
+
+        # GENERATE USER ANSWER
         # Retrieval
         resources = self.vectorstore.similarity_search_with_score(query=user_question)
-
-        self.user_history = self.get_user_history(user_id, thread_id)
 
         # Fallback: verificar si hay documentos
         if resources:
@@ -479,14 +537,9 @@ class RAGPipeline:
                 for doc in resources
             )
             full_prompt_str = COMPANY_QA_PROMPT
-            previous_context = "\n".join(
-                f'{msg["role"].capitalize()}: {msg["content"]}'
-                for msg in self.user_history[-max_hist_messages:]
-            )
         else:
             # Prompt alternativo si no se encuentran recursos relevantes
             company_info = ""
-            previous_context = ""
             full_prompt_str = NO_RESOURCES_FOUND_PROMPT
 
         full_prompt_str = full_prompt_str.format(
@@ -500,52 +553,19 @@ class RAGPipeline:
         )
         formatted_prompt = prompt.format(
             user_question=user_question,
-            previous_context=previous_context,
         )
 
         messages = [HumanMessage(content=formatted_prompt)]
         llm_response = self.llm.invoke(messages)
 
-        # Recommendation system
-        recommended_payload = self.recommend_resources(state, user_question)
-        recommended = recommended_payload["recommendations"]
-        state = recommended_payload["state"]
-
-        high_sim_recommendations = [(score, r) for score, r in recommended if score > 0.25]
-
-        user_profile_summary = self.build_user_profile_summary(user_id, thread_id)
-
-        # Armar una lista de recursos con índice
-        resource_blocks = []
-        for i, (score, resource) in enumerate(high_sim_recommendations, 1):
-            block = f"""Resource {i}:
-        Title: {resource.get("source_file", "Unknown")}
-        Summary: {resource.get("page_content", "No content")}
-        Similarity Score: {score:.2f}
-        """
-            resource_blocks.append(block)
-
-        combined_resource_str = "\n".join(resource_blocks)
-        explanations = self.explain_recommendation(
-            state, sentiment_tone, combined_resource_str, user_question, user_profile_summary
+        recommendations_text = "\n\n".join(
+            f"- {rec['source_file']}: {rec['explanation']}" for rec in recommendations
         )
-        explanations = []
-        for score, resource in high_sim_recommendations:
-            explanation_payload = self.explain_recommendation(
-                state, sentiment_tone, resource, user_question, user_profile_summary
-            )
 
-            state = explanation_payload["state"]
-            explanation = explanation_payload["recommendation_explanation"]
-
-            explanations.append((resource, score, explanation))
-
-        # Construir respuesta para el usuario
-        response_text = "Recommendations:\n"
-        for res, score, explanation in explanations:  # noqa: E501
-            response_text += f"\n- {res['source_file'].replace('_', ' ').title()} (Cosine similarity: {score:.2f}):\n{explanation}\n"  # noqa: E501
-
-        final_response = llm_response.content + "\n\n" + response_text
+        final_response = (
+            f"{llm_response.content}\n\n"
+            f"---\nRecommendations:\n{recommendations_text if recommendations_text else 'No additional recommendations available.'}"  # noqa: E501
+        )
 
         state.current_node = "question_answer"
         state.messages.append({"role": "assistant", "content": final_response})
@@ -555,7 +575,7 @@ class RAGPipeline:
 
     # 10 requests per minute per user
     @on_exception(expo, RateLimitException, max_tries=3)
-    @limits(calls=10, period=60)
+    @limits(calls=50, period=60)
     def run(self) -> str:
         with (
             PostgresStore.from_conn_string(self.db_uri) as store,
@@ -631,36 +651,56 @@ class RAGPipeline:
             with open("conversation_graph.png", "wb") as f:
                 f.write(graph.get_graph().draw_png())
 
-            # Simular una conversación
-            user_id = "user-123"
-            thread_id = "thread-1"
+            import json
 
-            state = MyStateSchema(messages=[], current_node="malicious_query_detector")
-            config = {
-                "configurable": {
-                    "user_id": user_id,
-                    "thread_id": thread_id,
-                }
-            }
+            profiles_path = "shakers_case_study/rag/pipelines/rag/profiles.json"
+            with open(profiles_path, "r", encoding="utf-8") as f:
+                profiles = json.load(f)
 
-            questions = [
-                "How to hack NASA",
-                "What Learnivo does?",
-                "What is the name of the company?",
-                "What does it?",
-            ]
+            total_time_all = 0
+            total_questions_all = 0
 
-            for question in questions:
-                state.messages.append({"role": "user", "content": question})
+            for profile in profiles:
+                questions = profiles["mixed"]
 
-                start_time = time.time()
+                total_time_profile = 0
+                total_questions_profile = len(questions)
 
-                # Ejecutar el grafo
-                state = graph.invoke(state, config=config)
+                # Simular una conversación
+                user_id = f"user-{profile}"
+                thread_id = "thread-1"
 
-                end_time = time.time()
-                duration = end_time - start_time
+                for question in questions:
+                    state = MyStateSchema(
+                        messages=[{"role": "user", "content": question}],
+                        current_node="malicious_query_detector",
+                    )
+                    config = {
+                        "configurable": {
+                            "user_id": user_id,
+                            "thread_id": thread_id,
+                        }
+                    }
 
-                print(f"Graph execution time: {duration:.2f} secs")
-                state = MyStateSchema(messages=[], current_node="malicious_query_detector")
-                pass
+                    start_time = time.time()
+                    state = graph.invoke(state, config=config)
+                    end_time = time.time()
+
+                    duration = end_time - start_time
+                    total_time_profile += duration
+
+                    print(f"[{profile}] Graph execution time for question: {duration:.3f} secs")
+
+                avg_time_profile = (
+                    total_time_profile / total_questions_profile if total_questions_profile else 0
+                )
+                print(
+                    f"Average execution time for profile '{profile}': {avg_time_profile:.3f} secs\n"
+                )
+
+                total_time_all += total_time_profile
+                total_questions_all += total_questions_profile
+
+            avg_time_all = total_time_all / total_questions_all if total_questions_all else 0
+            print(f"Overall average execution time per question: {avg_time_all:.3f} secs")
+            pass

@@ -1,0 +1,66 @@
+[
+  {
+    "profile": "onboarding",
+    "question": "How do I create a Learnivo account?",
+    "ground_truth_answer": "You can sign up using your email or Google account directly from the homepage.",
+    "keywords": ["sign up", "email", "Google", "homepage"],
+    "category": "account_creation",
+    "course_recommendation": null
+  },
+  {
+    "profile": "onboarding",
+    "question": "Where can I see my learning progress?",
+    "ground_truth_answer": "You can track your course completion and progress from the dashboard under 'My Courses'.",
+    "keywords": ["progress", "dashboard", "My Courses"],
+    "category": "navigation",
+    "course_recommendation": null
+  },
+  {
+    "profile": "payments",
+    "question": "What payment methods are accepted?",
+    "ground_truth_answer": "Learnivo accepts Visa, Mastercard, PayPal, Apple Pay, and Google Pay.",
+    "keywords": ["Visa", "PayPal", "Apple Pay", "accepted"],
+    "category": "billing_methods",
+    "course_recommendation": null
+  },
+  {
+    "profile": "payments",
+    "question": "How do I get an invoice for my subscription?",
+    "ground_truth_answer": "Invoices are available in your Billing section under Account Settings.",
+    "keywords": ["invoice", "billing", "account settings"],
+    "category": "billing_access",
+    "course_recommendation": null
+  },
+  {
+    "profile": "course_types",
+    "question": "What is a self-paced course?",
+    "ground_truth_answer": "Self-paced courses allow you to study anytime, without live sessions or fixed deadlines.",
+    "keywords": ["self-paced", "anytime", "no deadlines"],
+    "category": "course_structure",
+    "course_recommendation": "self-paced"
+  },
+  {
+    "profile": "course_types",
+    "question": "Are there corporate learning paths?",
+    "ground_truth_answer": "Yes, Learnivo provides role-based paths with analytics and team management tools.",
+    "keywords": ["corporate", "role-based", "analytics"],
+    "category": "enterprise_learning",
+    "course_recommendation": "corporate_training"
+  },
+  {
+    "profile": "mixed",
+    "question": "Can I cancel my subscription after enrolling?",
+    "ground_truth_answer": "Yes, subscriptions can be canceled anytime from the Billing section.",
+    "keywords": ["cancel", "subscription", "billing"],
+    "category": "subscription_management",
+    "course_recommendation": null
+  },
+  {
+    "profile": "mixed",
+    "question": "Which courses are best to start with for digital marketing?",
+    "ground_truth_answer": "We recommend starting with the 'Digital Marketing Basics' certification track.",
+    "keywords": ["digital marketing", "certification", "recommended"],
+    "category": "recommendation_request",
+    "course_recommendation": "certification_digital_marketing"
+  }
+]
