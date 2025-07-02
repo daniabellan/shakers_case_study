@@ -136,28 +136,25 @@ class QdrantIndex:
 
     def similarity_search_with_score(
         self,
-        threshold: float,
         query: str,
+        threshold: float = 0.5,
         k: int = 5,
     ) -> List[Document]:
         if self.vectorstore is None:
             raise RuntimeError("Qdrant index not initialized.")
 
         # Get documents + similarity scores
-        results_with_scores = self.vectorstore.similarity_search_with_score(query, k=k)
+        results_with_scores = self.vectorstore.similarity_search_with_score(
+            query, k=k, score_threshold=threshold
+        )
 
-        # Apply threshold filter
-        filtered_results = [
-            [doc, score] for doc, score in results_with_scores if score >= threshold
-        ]
-
-        if not filtered_results:
+        if len(results_with_scores) == 0:
             # Fallback: return a synthetic document or log "out of scope"
             logger.warning(
                 f"No relevant documents found above threshold={threshold} for query: {query}"
             )
 
-        return filtered_results
+        return results_with_scores
 
     def similarity_search(
         self,
