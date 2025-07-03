@@ -1,0 +1,19 @@
+# Dockerfile.fastapi
+FROM python:3.12.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY shakers_case_study ./shakers_case_study
+COPY pipeline_configs /app/pipeline_configs
+
+COPY uploaded_docs /app/uploaded_docs
+
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

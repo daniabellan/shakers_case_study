@@ -34,4 +34,4 @@ if __name__ == "__main__":
     config_path = "pipeline_configs/standard_pipeline.yaml"
     pipeline = build_rag_pipeline(config_path)
 
-    pipeline.run()
+    pipeline.profile_population()
