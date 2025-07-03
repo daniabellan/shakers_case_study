@@ -1,0 +1,81 @@
+services:
+  backend:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.backend
+    container_name: shakers_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - BACKEND_URL=http://localhost:8000
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - DB_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    env_file:
+      - ../.env
+    depends_on:
+      - postgres
+      - qdrant
+
+    volumes:
+      - ./uploaded_docs:/app/uploaded_docs
+
+  streamlit:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.streamlit
+    container_name: shakers_streamlit
+    restart: always
+    ports:
+      - "2000:2000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    env_file:
+      - ../.env
+    depends_on:
+      - backend
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    container_name: qdrant
+    ports:
+      - 6333:6333
+      - 6334:6334
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  postgres:
+    image: postgres:17.5
+    container_name: postgresql
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    env_file:
+      - "../.env"
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO
+
+volumes:
+  qdrant_data:
+  pg_data:

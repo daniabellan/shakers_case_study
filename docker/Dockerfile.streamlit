@@ -1,0 +1,13 @@
+FROM python:3.12.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY shakers_case_study ./shakers_case_study
+COPY pipeline_configs /app/pipeline_configs
+
+EXPOSE 2000
+
+CMD ["streamlit", "run", "shakers_case_study/app/main.py", "--server.port=2000", "--server.address=0.0.0.0"]

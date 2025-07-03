@@ -40,6 +40,9 @@ def build_ingestion_pipeline(config_path: str) -> IngestionPipeline:
 
 
 if __name__ == "__main__":
-    config_path = "pipeline_configs/standard_pipeline.yaml"
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.abspath(
+        os.path.join(BASE_DIR, "../../../../pipeline_configs/standard_pipeline.yaml")
+    )
     pipeline = build_ingestion_pipeline(config_path)
     pipeline.run()

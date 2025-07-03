@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -16,3 +17,7 @@ app.mount("/uploaded_docs", StaticFiles(directory=BASE_DIR / "uploaded_docs"), n
 # Include the API routers for document handling and RAG (Retrieval-Augmented Generation) features
 app.include_router(documents.router)
 app.include_router(rag.router)
+
+
+def main():
+    uvicorn.run("shakers_case_study.app.backend.main:app", host="127.0.0.1", port=8000, reload=True)
