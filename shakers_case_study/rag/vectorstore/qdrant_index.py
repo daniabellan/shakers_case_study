@@ -134,20 +134,40 @@ class QdrantIndex:
                 metadata_payload_key="metadata",
             )
 
-    def similarity_search(self, query: str, k: int = 5) -> List[Document]:
-        """
-        Perform a similarity search in the collection using a query string.
-
-        Args:
-            query (str): Query text to embed and search.
-            k (int): Number of nearest neighbors to return.
-
-        Returns:
-            List[Document]: List of matching documents.
-        """
+    def similarity_search_with_score(
+        self,
+        query: str,
+        threshold: float = 0.5,
+        k: int = 5,
+    ) -> List[Document]:
         if self.vectorstore is None:
             raise RuntimeError("Qdrant index not initialized.")
-        return self.vectorstore.similarity_search(query, k)
+
+        # Get documents + similarity scores
+        results_with_scores = self.vectorstore.similarity_search_with_score(
+            query, k=k, score_threshold=threshold
+        )
+
+        if len(results_with_scores) == 0:
+            # Fallback: return a synthetic document or log "out of scope"
+            logger.warning(
+                f"No relevant documents found above threshold={threshold} for query: {query}"
+            )
+
+        return results_with_scores
+
+    def similarity_search(
+        self,
+        query: str,
+        k: int = 5,
+    ) -> List[Document]:
+        if self.vectorstore is None:
+            raise RuntimeError("Qdrant index not initialized.")
+
+        # Get documents
+        results = self.vectorstore.similarity_search(query, k=k)
+
+        return results
 
     def load(self) -> None:
         """
@@ -155,7 +175,9 @@ class QdrantIndex:
         """
         client = self._get_client()
         self.vectorstore = QdrantVectorStore(
-            embedding_function=self.embedder.embed_query,
+            embedding=self.embedder,
             collection_name=self.collection_name,
             client=client,
         )
+
+        return self
