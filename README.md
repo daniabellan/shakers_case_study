@@ -37,7 +37,7 @@ The ingestion system processes and imports external documents into a vector stor
 
 The system is built around a **graph-based state machine**, where each node performs a specific operation (e.g., detecting malicious input, intent classification, generating replies). The central idea is to **augment LLM answers with retrieved knowledge** from your own content.
 
-![RAG Architecture](https://github.com/daniabellan/shakers_case_study/rag_architecture.png)
+![RAG Architecture](https://github.com/daniabellan/shakers_case_study/blob/main/rag_architecture.png)
 
 ---
 
